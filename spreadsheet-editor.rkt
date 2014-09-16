@@ -26,6 +26,7 @@
     (define value-str ((get-field get-cell-contents spreadsheet-editor) table-row column))
     (values (max max-pixels (get-visible-text-width (send spreadsheet-editor get-dc) value-str)))))
 
+;; (Reusable) button with index and mouse callbacks
 (define special-button%
   (class button%
     (init-field (on-left-click #f)
@@ -171,8 +172,7 @@
                                (label (row-label (+ n-row-buttons starting-row)))
                                (on-left-click
                                 (and button-left-click
-                                     (button-left-click
-                                      parent)))))
+                                     (button-left-click parent)))))
              (gvector-add! row-buttons button)))
           (set! n-row-buttons (+ 1 n-row-buttons))
           (set! total-length (+ total-length (send button get-height)))
@@ -342,13 +342,16 @@
         ((and (equal? type 'left-down)
               (get-field editable? spreadsheet-editor)
               (not (zero? (get-field n-rows spreadsheet-editor))))
+         ;; Finish our work in the current cell being edited, if any
          (unless (void? text-snip)
            (done-with-text-snip #t))
+         ;; Calculate the cell under mouse
          (define x (send event get-x))
          (define y (send event get-y))
          (set! text-snip-column (detect-column-by-x x))
          (set! text-snip-row (detect-row-by-y y))
          (when (and text-snip-column text-snip-row)
+           ;; Place the text object above the cell
            (define column-height (send (send spreadsheet-editor get-row-button 0) get-height))
            (define column-width (send (send spreadsheet-editor get-column-button text-snip-column) get-width))
            (define column-x (send (send spreadsheet-editor get-column-button text-snip-column) get-x))
@@ -373,6 +376,7 @@
            )))
       (void))))
 
+;; Main class, inherited form 3x3 table panel
 (define spreadsheet-editor%
   (class table-panel%
     (super-new
@@ -525,6 +529,7 @@
          (stretchable-width #f)
          (stretchable-height #f))
     
+    ;; Top-center (panel with column buttons)
     (define hpanel-top
       (new my-horizontal-panel%
            (parent this)
@@ -540,7 +545,7 @@
          (stretchable-width #f)
          (stretchable-height #f))
     
-    
+    ;; Center-left (panel with row buttons)
     (define vpanel-left
       (new my-vertical-panel%
            (parent this)
@@ -564,7 +569,7 @@
                  (parent this)
                  (style '(no-border no-hscroll no-vscroll)))))
     
-    ;; Stub for vertical slider
+    ;; Center-right (stub for vertical slider)
     (define vslider-pane
       (new vertical-pane%
            (parent this)
@@ -580,7 +585,7 @@
          (vert-margin 0)
          (min-width row-button-width))
 
-    ;; Stub for horizontal slider
+    ;; Bottom center (stub for horizontal slider)
     (define hslider-pane
       (new horizontal-pane%
            (parent this)
@@ -686,6 +691,7 @@
             (lambda (self event)
               (on-hslider-change self)))))
     
+    ;; All column buttons are created at once
     (field
      (all-column-buttons
       (for/vector
@@ -702,6 +708,7 @@
                    (column-button-left-click this i))))
         )))
     
+    ;; Precalculated minimal widths of the column buttons
     (define column-buttons-min-widths
       (for/vector
           ((button all-column-buttons))
