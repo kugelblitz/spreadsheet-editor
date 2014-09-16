@@ -48,7 +48,7 @@
  (new spreadsheet-editor%
       (parent frame)
       (n-rows 10000)
-      (n-columns 10)
+      (n-columns 100)
       (row-button-width 80)
       (get-row identity)
       (get-cell-contents get-cell-contents)

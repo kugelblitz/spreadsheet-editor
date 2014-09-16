@@ -313,7 +313,9 @@
           ;; void the text-snip to prevent another (done-with-text-snip) from on-focus
           (set! text-snip (void))
           (when save-contents?
-            ((get-field set-cell-contents! spreadsheet-editor) text-snip-row text-snip-column contents))
+            ((get-field set-cell-contents! spreadsheet-editor) text-snip-row text-snip-column contents)
+            (send spreadsheet-editor on-hslider-change #t)
+            )
           (set! text-snip-row (void))
           (set! text-snip-column (void))
           (send ts release-from-owner)
@@ -512,7 +514,7 @@
            (let ((new-value (min (max (+ (send hslider get-value) delta-x) 1) n-columns)))
              (unless (= new-value (send hslider get-value))
                (send hslider set-value new-value)
-               (on-hslider-change hslider))))
+               (on-hslider-change))))
          (unless (void? vslider)
            (let ((new-value (min (max (+ (send vslider get-value) delta-y) 1) n-rows)))
              (unless (= new-value (send vslider get-value))
@@ -662,12 +664,12 @@
           (else
            (loop (+ i 1) (+ length (send (vector-ref all-column-buttons i) get-width)))))))
     
-    (define (on-hslider-change self)
+    (define/public (on-hslider-change (force? #f))
       (define new-starting-column
         (calculate-starting-column
-         (- (send self get-value) 1)
+         (- (send hslider get-value) 1)
          (send hpanel-top get-width)))
-      (unless (equal? starting-column new-starting-column)
+      (when (or force? (not (equal? starting-column new-starting-column)))
         (set! starting-column new-starting-column)
         (send hpanel-top begin-container-sequence)
         (send hpanel-top change-children (lambda (x) '()))
@@ -689,7 +691,7 @@
            (stretchable-height #f)
            (callback
             (lambda (self event)
-              (on-hslider-change self)))))
+              (on-hslider-change)))))
     
     ;; All column buttons are created at once
     (field
