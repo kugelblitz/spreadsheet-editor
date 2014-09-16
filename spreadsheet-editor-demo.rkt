@@ -14,6 +14,9 @@
 (define (get-column-label i)
   (format "Column ~a" i))
 
+(define (get-row-label i)
+  (format "Row ~a" i))
+
 (define (get-column-alignment i)
   'left)
 
@@ -44,12 +47,14 @@
 (void
  (new spreadsheet-editor%
       (parent frame)
-      (n-rows 100)
+      (n-rows 10000)
       (n-columns 10)
+      (row-button-width 80)
       (get-row identity)
       (get-cell-contents get-cell-contents)
       (set-cell-contents! set-cell-contents!)
       (get-column-label get-column-label)
+      (get-row-label get-row-label)
       (get-column-alignment get-column-alignment)
       (column-button-left-click
        (lambda (table-editor i)
@@ -64,29 +69,27 @@
          (lambda (self i)
            (define popup (new popup-menu%
                               (title #f)))
-           (void (new menu-item%
-                      (label "&Delete this row")
-                      (parent popup)
-                      (callback
-                       (lambda (_ evt)
-                         (delete-row i)
-                         (send table-editor delete-row! i)
-                         ))))
-           (void (new menu-item%
-                      (label "Add row &above")
-                      (parent popup)
-                      (callback
-                       (lambda (_ evt)
-                         (add-row-before i)
-                         (send table-editor add-row-before! i)
-                         ))))
-           (void (new menu-item%
-                      (label "Add row &below")
-                      (parent popup)
-                     (callback
-                      (lambda (_ evt)
-                        (add-row-before (+ 1 i))
-                        (send table-editor add-row-before! i)))))
+           (new menu-item%
+                (label "&Delete this row")
+                (parent popup)
+                (callback
+                 (lambda (_ evt)
+                   (delete-row i)
+                   (send table-editor delete-row! i))))
+           (new menu-item%
+                (label "Add row &above")
+                (parent popup)
+                (callback
+                 (lambda (_ evt)
+                   (add-row-before i)
+                   (send table-editor add-row-before! i))))
+           (new menu-item%
+                (label "Add row &below")
+                (parent popup)
+                (callback
+                 (lambda (_ evt)
+                   (add-row-before (+ 1 i))
+                   (send table-editor add-row-before! i))))
            (send self popup-menu popup 0 (send self get-height)))))
       (editable? #t)))
  

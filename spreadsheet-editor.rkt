@@ -115,6 +115,7 @@
     (define/override (container-size info)
       (values 0 0))
     
+    (init-field row-label)
     (init-field (button-left-click #f))
     
     (field (n-row-buttons 0))
@@ -146,7 +147,7 @@
              (set! flag #t))
            ;; ... and relabel buttons that are visible
            (send child set-index (+ n-row-buttons starting-row))
-           (send child set-label (number->string (+ 1 n-row-buttons starting-row)))
+           (send child set-label (row-label (+ n-row-buttons starting-row)))
            (set! n-row-buttons (+ 1 n-row-buttons))
            )))
       ;; Add buttons till there is place on the panel
@@ -159,7 +160,7 @@
              ;; Relabel and reuse a previously added and deleted button
              (set! button (gvector-ref row-buttons n-row-buttons))
              (send button set-index (+ n-row-buttons starting-row))
-             (send button set-label (number->string (+ 1 n-row-buttons starting-row)))
+             (send button set-label (row-label (+ n-row-buttons starting-row)))
              (send this add-child button))
             (else
              ;; Add a new button
@@ -167,7 +168,7 @@
                                (parent this)
                                (stretchable-width #t)
                                (index (+ n-row-buttons starting-row))
-                               (label (number->string (+ 1 n-row-buttons starting-row)))
+                               (label (row-label (+ n-row-buttons starting-row)))
                                (on-left-click
                                 (and button-left-click
                                      (button-left-click
@@ -383,25 +384,19 @@
      (vert-margin 0)
      (dimensions '(3 3)))
     
-    (init-field n-rows)
-    (init-field n-columns)
-    (init-field (editable? #f))
-    (init-field (horizontal-margin 4))
-    (init-field (row-button-width 70))
-    (init-field (get-column-label
-                 (lambda (i)
-                   (format "Col. ~a" i))))
-    (init-field (get-row identity))
-    (init-field (get-cell-contents
-                 (lambda (row j)
-                   (format "[~a, ~a]" row j)
-                   )))
-    (init-field (set-cell-contents!
-                 (lambda (row col value)
-                   (void))))
-    (init-field (get-column-alignment
-                 (lambda (j)
-                   'right)))
+    (init-field n-rows
+                n-columns
+                (editable? #f)
+                (horizontal-margin 4)
+                (row-button-width 70))
+    
+    (init-field (get-column-label number->string)
+                (get-row-label number->string))
+    
+    (init-field (get-row identity)
+                (get-cell-contents (lambda (row col) ""))
+                (set-cell-contents! (lambda (row col value) (void)))
+                (get-column-alignment (lambda (j) 'right)))
     
     (init-field (column-button-left-click #f)
                 (row-button-left-click #f))
@@ -554,6 +549,7 @@
            (stretchable-height #t)
            (min-width row-button-width)
            (button-left-click row-button-left-click)
+           (row-label get-row-label)
            ))
     
     (define pasteboard (new my-pasteboard% (spreadsheet-editor this)))
