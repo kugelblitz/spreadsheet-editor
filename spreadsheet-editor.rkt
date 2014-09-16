@@ -6,7 +6,7 @@
   data/gvector
   (planet williams/table-panel:1:2/table-panel))
 
-(provide table-editor%)
+(provide spreadsheet-editor%)
 
 ;; Helper functions
 (define (find-max list get-value)
@@ -20,11 +20,11 @@
      (define-values (w h a b) (send dc get-text-extent str))
      (inexact->exact w))))
 
-(define (visible-column-contents-width table-editor visible-rows column)
+(define (visible-column-contents-width spreadsheet-editor visible-rows column)
   (for/fold ((max-pixels 0))
     ((table-row visible-rows))
-    (define value-str ((get-field get-cell-contents table-editor) table-row column))
-    (values (max max-pixels (get-visible-text-width (send table-editor get-dc) value-str)))))
+    (define value-str ((get-field get-cell-contents spreadsheet-editor) table-row column))
+    (values (max max-pixels (get-visible-text-width (send spreadsheet-editor get-dc) value-str)))))
 
 (define special-button%
   (class button%
@@ -182,7 +182,7 @@
 ;; Specialized canvas to draw the grid lines and cells' contents
 (define my-editor-canvas%
   (class editor-canvas%
-    (init-field (table-editor (void)))
+    (init-field (spreadsheet-editor (void)))
     (super-new)
     
     (define/override (on-paint)
@@ -192,25 +192,25 @@
       (define border-x 0)
       (define border-y 0)
       
-      (define n-column-buttons (send table-editor n-column-buttons))
-      (define n-row-buttons (send table-editor n-row-buttons))
-      (define starting-column (get-field starting-column table-editor))
+      (define n-column-buttons (send spreadsheet-editor n-column-buttons))
+      (define n-row-buttons (send spreadsheet-editor n-row-buttons))
+      (define starting-column (get-field starting-column spreadsheet-editor))
       
       (when (positive? n-column-buttons)
         (define border-column-button
-          (send table-editor get-column-button (+ starting-column n-column-buttons -1)))
+          (send spreadsheet-editor get-column-button (+ starting-column n-column-buttons -1)))
         (set! border-x (+ (send border-column-button get-x)
                           (send border-column-button get-width))))
       (when (positive? n-row-buttons)
         (define border-row-button
-          (send table-editor get-row-button (- n-row-buttons 1)))
+          (send spreadsheet-editor get-row-button (- n-row-buttons 1)))
         (set! border-y (+ (send border-row-button get-y)
                           (send border-row-button get-height))))
       
-      (define row-buttons (send table-editor row-buttons))
-      (define starting-row (get-field starting-row table-editor))
-      (define n-rows (get-field n-rows table-editor))
-      (define visible-column-buttons (send table-editor visible-column-buttons))
+      (define row-buttons (send spreadsheet-editor row-buttons))
+      (define starting-row (get-field starting-row spreadsheet-editor))
+      (define n-rows (get-field n-rows spreadsheet-editor))
+      (define visible-column-buttons (send spreadsheet-editor visible-column-buttons))
       
       (for ((btn visible-column-buttons))
         (send dc draw-line
@@ -229,7 +229,7 @@
               0 (- border-y 1)
               (- border-x 1) (- border-y 1))
       
-      (define horizontal-margin (get-field horizontal-margin table-editor))
+      (define horizontal-margin (get-field horizontal-margin spreadsheet-editor))
       
       (define editor (send this get-editor))
       
@@ -238,7 +238,7 @@
       
       (for ((row-btn row-buttons)
             (row (in-range starting-row n-rows)))
-        (define table-row ((get-field get-row table-editor) row))
+        (define table-row ((get-field get-row spreadsheet-editor) row))
         (for ((col-btn visible-column-buttons)
               (column (in-naturals starting-column)))
           (unless (and (equal? text-snip-row row)
@@ -247,11 +247,11 @@
             (define y (send row-btn get-y))
             (define w (send col-btn get-width))
             (define h (send row-btn get-height))
-            (define contents ((get-field get-cell-contents table-editor) table-row column))
+            (define contents ((get-field get-cell-contents spreadsheet-editor) table-row column))
             (define text-w (get-visible-text-width dc contents))
             (send dc set-clipping-rect x y w h)
             (when (<= (+ text-w (* 2 horizontal-margin)) w)
-              (match ((get-field get-column-alignment table-editor) column)
+              (match ((get-field get-column-alignment spreadsheet-editor) column)
                 ('right (set! x (+ x (- w text-w horizontal-margin))))
                 ('left (set! x (+ x horizontal-margin)))))
             (send dc draw-text contents x y)
@@ -291,7 +291,7 @@
 (define my-pasteboard%
   (class pasteboard%
     (super-new)
-    (init-field table-editor)
+    (init-field spreadsheet-editor)
     (define/augment (can-select? snip on?)
       #f)
     (define/augment (can-interactive-move? snip)
@@ -312,35 +312,35 @@
           ;; void the text-snip to prevent another (done-with-text-snip) from on-focus
           (set! text-snip (void))
           (when save-contents?
-            ((get-field set-cell-contents! table-editor) text-snip-row text-snip-column contents))
+            ((get-field set-cell-contents! spreadsheet-editor) text-snip-row text-snip-column contents))
           (set! text-snip-row (void))
           (set! text-snip-column (void))
           (send ts release-from-owner)
-          (send (get-field editor-canvas table-editor) refresh))))
+          (send (get-field editor-canvas spreadsheet-editor) refresh))))
     
     ;; Helper functions for table cell editing
     (define (detect-column-by-x x)
       (define-values (col _)
-        (for/fold ((result (get-field starting-column table-editor))
+        (for/fold ((result (get-field starting-column spreadsheet-editor))
                    (length 0))
-          ((button (send table-editor visible-column-buttons)))
+          ((button (send spreadsheet-editor visible-column-buttons)))
           #:break (<= x (+ length (send button get-width)))
           (values (+ result 1)
                   (+ length (send button get-width)))))
-      (if (< col (get-field n-columns table-editor)) col #f))
+      (if (< col (get-field n-columns spreadsheet-editor)) col #f))
     
     (define (detect-row-by-y y)
       (define rownum
-        (+ (get-field starting-row table-editor)
-           (floor (/ y (send (send table-editor get-row-button 0) get-height)))))
-      (if (< rownum (get-field n-rows table-editor)) rownum #f))
+        (+ (get-field starting-row spreadsheet-editor)
+           (floor (/ y (send (send spreadsheet-editor get-row-button 0) get-height)))))
+      (if (< rownum (get-field n-rows spreadsheet-editor)) rownum #f))
     
     (define/override (on-default-event event)
       (define type (send event get-event-type))
       (cond
         ((and (equal? type 'left-down)
-              (get-field editable? table-editor)
-              (not (zero? (get-field n-rows table-editor))))
+              (get-field editable? spreadsheet-editor)
+              (not (zero? (get-field n-rows spreadsheet-editor))))
          (unless (void? text-snip)
            (done-with-text-snip #t))
          (define x (send event get-x))
@@ -348,13 +348,13 @@
          (set! text-snip-column (detect-column-by-x x))
          (set! text-snip-row (detect-row-by-y y))
          (when (and text-snip-column text-snip-row)
-           (define column-height (send (send table-editor get-row-button 0) get-height))
-           (define column-width (send (send table-editor get-column-button text-snip-column) get-width))
-           (define column-x (send (send table-editor get-column-button text-snip-column) get-x))
-           (define column-y (send (send table-editor get-row-button (- text-snip-row (get-field starting-row table-editor))) get-y))
+           (define column-height (send (send spreadsheet-editor get-row-button 0) get-height))
+           (define column-width (send (send spreadsheet-editor get-column-button text-snip-column) get-width))
+           (define column-x (send (send spreadsheet-editor get-column-button text-snip-column) get-x))
+           (define column-y (send (send spreadsheet-editor get-row-button (- text-snip-row (get-field starting-row spreadsheet-editor))) get-y))
            (set! text-obj (new my-text% (pasteboard this)))
-           (send text-obj insert ((get-field get-cell-contents table-editor)
-                                  ((get-field get-row table-editor) text-snip-row)
+           (send text-obj insert ((get-field get-cell-contents spreadsheet-editor)
+                                  ((get-field get-row spreadsheet-editor) text-snip-row)
                                   text-snip-column) 0)
            (send text-obj extend-position 0)
            (set! text-snip (new editor-snip%
@@ -372,7 +372,7 @@
            )))
       (void))))
 
-(define table-editor%
+(define spreadsheet-editor%
   (class table-panel%
     (super-new
      (alignment '(center center))
@@ -556,13 +556,13 @@
            (button-left-click row-button-left-click)
            ))
     
-    (define pasteboard (new my-pasteboard% (table-editor this)))
+    (define pasteboard (new my-pasteboard% (spreadsheet-editor this)))
     
     ;; Canvas (middle cell in the 3x3 layout)
     (field (editor-canvas
             (new my-editor-canvas%
                  (editor pasteboard)
-                 (table-editor this)
+                 (spreadsheet-editor this)
                  (vertical-inset 0)
                  (horizontal-inset 0)
                  (parent this)
