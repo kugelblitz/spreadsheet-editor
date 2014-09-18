@@ -61,14 +61,11 @@
          (lambda (self i)
            (message-box "Useful information"
                         (format "You just pressed column #~a" i)
-                        frame
-                        '(ok)
-                        ))))
+                        frame '(ok)))))
       (row-button-left-click
        (lambda (table-editor)
          (lambda (self i)
-           (define popup (new popup-menu%
-                              (title #f)))
+           (define popup (new popup-menu% (title #f)))
            (new menu-item%
                 (label "&Delete this row")
                 (parent popup)

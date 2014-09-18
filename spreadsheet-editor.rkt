@@ -180,85 +180,6 @@
       (send this end-container-sequence)
       )))
 
-;; Specialized canvas to draw the grid lines and cells' contents
-(define my-editor-canvas%
-  (class editor-canvas%
-    (init-field (spreadsheet-editor (void)))
-    (super-new)
-    
-    (define/override (on-paint)
-      (super on-paint)
-      (define dc (send this get-dc))
-      (define-values (width height) (send dc get-size))
-      (define border-x 0)
-      (define border-y 0)
-      
-      (define n-column-buttons (send spreadsheet-editor n-column-buttons))
-      (define n-row-buttons (send spreadsheet-editor n-row-buttons))
-      (define starting-column (get-field starting-column spreadsheet-editor))
-      
-      (when (positive? n-column-buttons)
-        (define border-column-button
-          (send spreadsheet-editor get-column-button (+ starting-column n-column-buttons -1)))
-        (set! border-x (+ (send border-column-button get-x)
-                          (send border-column-button get-width))))
-      (when (positive? n-row-buttons)
-        (define border-row-button
-          (send spreadsheet-editor get-row-button (- n-row-buttons 1)))
-        (set! border-y (+ (send border-row-button get-y)
-                          (send border-row-button get-height))))
-      
-      (define row-buttons (send spreadsheet-editor row-buttons))
-      (define starting-row (get-field starting-row spreadsheet-editor))
-      (define n-rows (get-field n-rows spreadsheet-editor))
-      (define visible-column-buttons (send spreadsheet-editor visible-column-buttons))
-      
-      (for ((btn visible-column-buttons))
-        (send dc draw-line
-              (- (send btn get-x) 1) 0
-              (- (send btn get-x) 1) (- border-y 1)))
-      (send dc draw-line
-              (- border-x 1) 0
-              (- border-x 1) (- border-y 1))
-      
-      (for ((btn row-buttons)
-            (row (in-range starting-row n-rows)))
-        (send dc draw-line
-              0 (- (send btn get-y) 1)
-              (- border-x 1) (- (send btn get-y) 1)))
-      (send dc draw-line
-              0 (- border-y 1)
-              (- border-x 1) (- border-y 1))
-      
-      (define horizontal-margin (get-field horizontal-margin spreadsheet-editor))
-      
-      (define editor (send this get-editor))
-      
-      (define text-snip-row (get-field text-snip-row editor))
-      (define text-snip-column (get-field text-snip-column editor))
-      
-      (for ((row-btn row-buttons)
-            (row (in-range starting-row n-rows)))
-        (define table-row ((get-field get-row spreadsheet-editor) row))
-        (for ((col-btn visible-column-buttons)
-              (column (in-naturals starting-column)))
-          (unless (and (equal? text-snip-row row)
-                       (equal? text-snip-column column))
-            (define x (send col-btn get-x))
-            (define y (send row-btn get-y))
-            (define w (send col-btn get-width))
-            (define h (send row-btn get-height))
-            (define contents ((get-field get-cell-contents spreadsheet-editor) table-row column))
-            (define text-w (get-visible-text-width dc contents))
-            (send dc set-clipping-rect x y w h)
-            (when (<= (+ text-w (* 2 horizontal-margin)) w)
-              (match ((get-field get-column-alignment spreadsheet-editor) column)
-                ('right (set! x (+ x (- w text-w horizontal-margin))))
-                ('left (set! x (+ x horizontal-margin)))))
-            (send dc draw-text contents x y)
-            (send dc set-clipping-region #f)))))
-    ))
-
 ;; Specialized text% for editing the cell contents
 (define my-text%
   (class text%
@@ -288,6 +209,15 @@
         (else (super on-char event)))
       )))
 
+;; This helper function determines whether (X,Y,W,H) rectangle
+;; intersects with (left, top, right, bottom)
+(define (intersects? x y w h left top right bottom)
+  (and
+   (>= (+ x w) left)
+   (>= right x)
+   (>= (+ y h) top)
+   (>= bottom y)))
+
 ;; Specialized pasteboard% to place the text snip on
 (define my-pasteboard%
   (class pasteboard%
@@ -305,6 +235,75 @@
     (field (text-obj (void)))
     (field (text-snip-row (void)))
     (field (text-snip-column (void)))
+    
+    (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
+      (when before?
+        (define-values (width height) (send dc get-size))
+        (define border-x 0)
+        (define border-y 0)
+        
+        (define n-column-buttons (send spreadsheet-editor n-column-buttons))
+        (define n-row-buttons (send spreadsheet-editor n-row-buttons))
+        (define starting-column (get-field starting-column spreadsheet-editor))
+        
+        (when (positive? n-column-buttons)
+          (define border-column-button
+            (send spreadsheet-editor get-column-button (+ starting-column n-column-buttons -1)))
+          (set! border-x (+ (send border-column-button get-x)
+                            (send border-column-button get-width))))
+        (when (positive? n-row-buttons)
+          (define border-row-button
+            (send spreadsheet-editor get-row-button (- n-row-buttons 1)))
+          (set! border-y (+ (send border-row-button get-y)
+                            (send border-row-button get-height))))
+        
+        (define row-buttons (send spreadsheet-editor row-buttons))
+        (define starting-row (get-field starting-row spreadsheet-editor))
+        (define n-rows (get-field n-rows spreadsheet-editor))
+        (define visible-column-buttons (send spreadsheet-editor visible-column-buttons))
+        
+        (send dc set-text-mode 'solid)
+        
+        (for ((btn visible-column-buttons))
+          (send dc draw-line
+                (- (send btn get-x) 1) 0
+                (- (send btn get-x) 1) (- border-y 1)))
+        (send dc draw-line
+              (- border-x 1) 0
+              (- border-x 1) (- border-y 1))
+        
+        (for ((btn row-buttons)
+              (row (in-range starting-row n-rows)))
+          (send dc draw-line
+                0 (- (send btn get-y) 1)
+                (- border-x 1) (- (send btn get-y) 1)))
+        (send dc draw-line
+              0 (- border-y 1)
+              (- border-x 1) (- border-y 1))
+        
+        (define horizontal-margin (get-field horizontal-margin spreadsheet-editor))
+        
+        (for ((row-btn row-buttons)
+              (row (in-range starting-row n-rows)))
+          (define table-row ((get-field get-row spreadsheet-editor) row))
+          (for ((col-btn visible-column-buttons)
+                (column (in-naturals starting-column)))
+            (unless (and (equal? text-snip-row row)
+                         (equal? text-snip-column column))
+              (define x (send col-btn get-x))
+              (define y (send row-btn get-y))
+              (define w (send col-btn get-width))
+              (define h (send row-btn get-height))
+              (when (intersects? x y w h left top right bottom)
+                (define contents ((get-field get-cell-contents spreadsheet-editor) table-row column))
+                (define text-w (get-visible-text-width dc contents))
+                (send dc set-clipping-rect x y w h)
+                (when (<= (+ text-w (* 2 horizontal-margin)) w)
+                  (match ((get-field get-column-alignment spreadsheet-editor) column)
+                    ('right (set! x (+ x (- w text-w horizontal-margin))))
+                    ('left (set! x (+ x horizontal-margin)))))
+                (send dc draw-text contents x y)
+                (send dc set-clipping-region #f)))))))
     
     (define/public (done-with-text-snip save-contents?)
       (define ts text-snip)
@@ -368,10 +367,10 @@
                                 (left-margin 0) (right-margin 0) (top-margin 0) (bottom-margin 0)
                                 (left-inset 0) (right-inset 0) (top-inset 0) (bottom-inset 0)
                                 (with-border? #f)
-                                (min-width column-width)
+                                (min-width (- column-width 1))
                                 ;(max-width column-width)
-                                (min-height column-height)
-                                (max-height column-height)
+                                (min-height (- column-height 1))
+                                (max-height (- column-height 1))
                                 ))
            (send this insert text-snip column-x column-y)
            (send this set-caret-owner text-snip)
@@ -563,9 +562,8 @@
     
     ;; Canvas (middle cell in the 3x3 layout)
     (field (editor-canvas
-            (new my-editor-canvas%
+            (new editor-canvas%
                  (editor pasteboard)
-                 (spreadsheet-editor this)
                  (vertical-inset 0)
                  (horizontal-inset 0)
                  (parent this)
