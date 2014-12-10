@@ -4,7 +4,8 @@
   racket/gui
   racket/draw
   data/gvector
-  (planet williams/table-panel:1:2/table-panel))
+  table-panel ;; raco pkg install table-panel
+  )
 
 (provide spreadsheet-editor%)
 
