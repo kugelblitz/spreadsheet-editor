@@ -719,11 +719,12 @@
          (send button get-label))))
     
     (define/override (on-superwindow-show shown?)
-      (send hpanel-top on-size
-            (send hpanel-top get-width)
-            (send hpanel-top get-height))
-      (send vpanel-left on-size
-            (send vpanel-left get-width)
-            (send vpanel-left get-height))
-      (send editor-canvas refresh))
+      (when shown?
+        (send hpanel-top on-size
+              (send hpanel-top get-width)
+              (send hpanel-top get-height))
+        (send vpanel-left on-size
+              (send vpanel-left get-width)
+              (send vpanel-left get-height))
+        (send editor-canvas refresh)))
     ))
