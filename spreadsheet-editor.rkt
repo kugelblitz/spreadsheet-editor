@@ -106,8 +106,8 @@
           (set! n-column-buttons (+ 1 n-column-buttons))
           (set! total-length (+ total-length (send button get-width)))
           (loop)))
-      (send this end-container-sequence))
-    
+      (send this end-container-sequence)
+      (send (get-field editor-canvas parent) refresh))
     ))
 
 ;; Panel with row buttons
@@ -179,6 +179,7 @@
           (set! total-length (+ total-length (send button get-height)))
           (loop)))
       (send this end-container-sequence)
+      (send (get-field editor-canvas parent) refresh)
       )))
 
 ;; Specialized text% for editing the cell contents
@@ -716,4 +717,13 @@
         (get-visible-text-width
          (send editor-canvas get-dc)
          (send button get-label))))
+    
+    (define/override (on-superwindow-show shown?)
+      (send hpanel-top on-size
+            (send hpanel-top get-width)
+            (send hpanel-top get-height))
+      (send vpanel-left on-size
+            (send vpanel-left get-width)
+            (send vpanel-left get-height))
+      (send editor-canvas refresh))
     ))
