@@ -503,6 +503,10 @@
     (define (get-vslider-value)
       (max (send vslider get-value) 1))
     
+    (define/public (scroll-to-row i)
+      (send vslider set-value i)
+      (on-vslider-change vslider))
+    
     (define/override (on-subwindow-char receiver event)
       (define text-snip (get-field text-snip pasteboard))
       (define n-row-buttons (send this n-row-buttons))
