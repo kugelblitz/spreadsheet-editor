@@ -493,6 +493,16 @@
         (on-vslider-change vslider)
       ))
     
+    ;; The (get-hslider-value) and (get-vslider-value) helpers
+    ;; get around the bug in slider, when it has min-value = max-value = 1,
+    ;; but its value is set to 0
+    ;; http://lists.racket-lang.org/users/archive/2014-September/064246.html
+    (define (get-hslider-value)
+      (max (send hslider get-value) 1))
+    
+    (define (get-vslider-value)
+      (max (send vslider get-value) 1))
+    
     (define/override (on-subwindow-char receiver event)
       (define text-snip (get-field text-snip pasteboard))
       (define n-row-buttons (send this n-row-buttons))
@@ -508,17 +518,17 @@
               '( 0  1))
              ('prior `( 0 ,(- 1 n-row-buttons)))
              ('next  `( 0 ,(- n-row-buttons 1)))
-             ('home `(0 ,(- 1 (send vslider get-value))))
-             ('end  `(0 ,(- n-rows (send vslider get-value))))
+             ('home `(0 ,(- 1 (get-vslider-value))))
+             ('end  `(0 ,(- n-rows (get-vslider-value))))
              (else   '( 0  0))))
          (unless (void? hslider)
-           (let ((new-value (min (max (+ (send hslider get-value) delta-x) 1) n-columns)))
-             (unless (= new-value (send hslider get-value))
+           (let ((new-value (min (max (+ (get-hslider-value) delta-x) 1) n-columns)))
+             (unless (= new-value (get-hslider-value))
                (send hslider set-value new-value)
                (on-hslider-change))))
          (unless (void? vslider)
-           (let ((new-value (min (max (+ (send vslider get-value) delta-y) 1) n-rows)))
-             (unless (= new-value (send vslider get-value))
+           (let ((new-value (min (max (+ (get-vslider-value) delta-y) 1) n-rows)))
+             (unless (= new-value (get-vslider-value))
                (send vslider set-value new-value)
                (on-vslider-change vslider)))))
         (else
@@ -675,7 +685,7 @@
     (define/public (on-hslider-change (force? #f))
       (define new-starting-column
         (calculate-starting-column
-         (- (send hslider get-value) 1)
+         (- (get-hslider-value) 1)
          (send hpanel-top get-width)))
       (when (or force? (not (equal? starting-column new-starting-column)))
         (set! starting-column new-starting-column)
