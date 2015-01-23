@@ -524,6 +524,14 @@
         (else
          (super on-subwindow-char receiver event))))
     
+    (define/override (on-subwindow-focus receiver on?)
+      (when on?
+        (unless (equal? receiver editor-canvas)
+          (send editor-canvas focus))))
+
+    (define/public (set-focus-to-canvas)
+      (send editor-canvas focus))
+
     ;; Top-left corner
     (new pane%
          (parent this)
