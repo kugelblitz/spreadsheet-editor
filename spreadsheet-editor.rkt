@@ -189,7 +189,7 @@
     (init-field pasteboard)
     (define/override (on-focus on?)
       (unless on?
-        (send pasteboard done-with-text-snip #t))
+        (send pasteboard done-with-text-snip #f))
       (super on-focus on?))
     (define/override (on-char event)
       (define key-code (send event get-key-code))
@@ -347,7 +347,7 @@
               (not (zero? (get-field n-rows spreadsheet-editor))))
          ;; Finish our work in the current cell being edited, if any
          (unless (void? text-snip)
-           (done-with-text-snip #t))
+           (done-with-text-snip #f))
          ;; Calculate the cell under mouse
          (define x (send event get-x))
          (define y (send event get-y))
@@ -360,7 +360,7 @@
            (define column-x (send (send spreadsheet-editor get-column-button text-snip-column) get-x))
            (define column-y (send (send spreadsheet-editor get-row-button (- text-snip-row (get-field starting-row spreadsheet-editor))) get-y))
            (set! text-obj (new my-text% (pasteboard this)))
-           (send text-obj insert ((get-field get-cell-contents spreadsheet-editor)
+           (send text-obj insert ((get-field get-cell-contents-before-edit spreadsheet-editor)
                                   ((get-field get-row spreadsheet-editor) text-snip-row)
                                   text-snip-column) 0)
            (send text-obj extend-position 0)
@@ -402,6 +402,7 @@
     
     (init-field (get-row identity)
                 (get-cell-contents (lambda (row col) ""))
+                (get-cell-contents-before-edit get-cell-contents)
                 (set-cell-contents! (lambda (row col value) (void)))
                 (get-column-alignment (lambda (j) 'right)))
     
