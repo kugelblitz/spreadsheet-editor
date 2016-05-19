@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 (require 
   racket/gui
@@ -59,7 +59,7 @@
     (field (n-column-buttons 0))
     
     (define parent (send this get-parent))
-    
+
     (define/override (on-size w h)
       (define total-length 0)
       (set! n-column-buttons 0)
@@ -107,8 +107,8 @@
           (set! total-length (+ total-length (send button get-width)))
           (loop)))
       (send this end-container-sequence)
-      (send (get-field editor-canvas parent) refresh))
-    ))
+      (send (get-field editor-canvas parent) refresh)
+      )))
 
 ;; Panel with row buttons
 (define my-vertical-panel%
@@ -559,6 +559,7 @@
     (define hpanel-top
       (new my-horizontal-panel%
            (parent this)
+           (style '(hide-hscroll))
            (border 0)
            (stretchable-width #t)
            (stretchable-height #f)))
@@ -576,12 +577,12 @@
       (new my-vertical-panel%
            (parent this)
            (border 0)
+           (style '(hide-vscroll))
            (stretchable-width #f)
            (stretchable-height #t)
            (min-width row-button-width)
            (button-left-click row-button-left-click)
-           (row-label get-row-label)
-           ))
+           (row-label get-row-label)))
     
     (define pasteboard (new my-pasteboard% (spreadsheet-editor this)))
     
@@ -673,19 +674,23 @@
       (define n-buttons 0)
       (define column pivot)
       (define total-length 0)
+      (define n-columns (vector-length all-column-buttons))
+      (define (get-column-width i)
+        (send (vector-ref all-column-buttons i) get-width))
       (let loop ((i pivot)
                  (length 0))
         (cond
           ((>= i (vector-length all-column-buttons))
-           (let loop1 ((i pivot) (length length))
+           (let loop1 ((i (sub1 n-columns))
+                       (length (get-column-width (sub1 n-columns))))
              (cond
                ((zero? i) 0)
                ((<= (+ length (send (vector-ref all-column-buttons (- i 1)) get-width)) width)
                 (loop1 (- i 1) (+ length (send (vector-ref all-column-buttons (- i 1)) get-width))))
                (else i))))
-          ((> length width) pivot)
+          ((> (+ length (get-column-width i)) width) pivot)
           (else
-           (loop (+ i 1) (+ length (send (vector-ref all-column-buttons i) get-width)))))))
+           (loop (add1 i) (+ length (get-column-width i)))))))
     
     (define/public (on-hslider-change (force? #f))
       (define new-starting-column
@@ -715,6 +720,7 @@
            (callback
             (lambda (self event)
               (on-hslider-change)))))
+
     
     ;; All column buttons are created at once
     (field
