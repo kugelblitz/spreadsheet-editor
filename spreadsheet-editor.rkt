@@ -566,6 +566,7 @@
       (new my-horizontal-panel%
            (parent this)
            (style '(hide-hscroll))
+           (min-height 1)
            (border 0)
            (stretchable-width #t)
            (stretchable-height #f)))
