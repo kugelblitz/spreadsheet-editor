@@ -1,7 +1,22 @@
 spreadsheet-editor
 ==================
 
-Simple spreadsheet editor in Racket
+Simple spreadsheet editor in Racket.
+
+[<img src="./example-thumbnail.jpg" width="200">](./example.png?raw=true)
+
+demo
+----
+
+```sh
+git clone https://github.com/kugelblitz/spreadsheet-editor
+cd spreadsheet-editor
+raco pkg install table-panel
+racket spreadsheet-editor-demo.rkt
+```
+
+licence
+-------
 
 Copyright (c) 2014-2016 Dmitry Pavlov
 All rights reserved.
