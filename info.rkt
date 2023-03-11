@@ -9,4 +9,4 @@
                "table-panel"))
 
 (define pkg-desc "This library provides spreadsheet-editor% class.")
-(define version "1.0.0")
+(define version "1.0")
